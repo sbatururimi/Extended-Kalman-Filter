@@ -48,13 +48,16 @@ FusionEKF::FusionEKF() {
     
     //the initial transition matrix F_
     ekf_.F_ = MatrixXd(4, 4);
-    kf_.F_ << 1, 0, 1, 0,
+    ekf_.F_ << 1, 0, 1, 0,
             0, 1, 0, 1,
             0, 0, 1, 0,
             0, 0, 0, 1;
     
     H_laser_ << 1, 0, 0, 0,
             0, 1, 0, 0;
+    
+    // process noise
+    ekf_.Q_ = Eigen::MatrixXd::Zero(4, 4);
 }
 
 /**
@@ -117,6 +120,30 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
      * Use noise_ax = 9 and noise_ay = 9 for your Q matrix.
      */
     
+    //compute the time elapsed between the current and previous measurements
+    float dt = (measurement_pack.timestamp_ - previous_timestamp_) / 1000000.0; // in seconds
+    previous_timestamp_ = measurement_pack.timestamp_;
+    
+    //Modify the F matrix so that the time is integrated
+    ekf_.F_(0, 2) = dt;
+    ekf_.F_(1, 3) = dt;
+    
+    //set the process covariance matrix Q
+    float dt_2 = dt * dt;
+    float dt_3 = dt_2 * dt;
+    float dt_4 = dt_3 * dt;
+    
+    float noise_ax = 9;
+    float noise_ay = 9;
+    ekf_.Q_(0, 0) = dt_4/4*noise_ax;
+    ekf_.Q_(0, 2) = dt_3/2*noise_ax;
+    ekf_.Q_(1, 1) = dt_4/4*noise_ay;
+    ekf_.Q_(1, 3) = dt_3/2*noise_ay;
+    ekf_.Q_(2, 0) = dt_3/2*noise_ax;
+    ekf_.Q_(2, 2) = dt_2*noise_ax;
+    ekf_.Q_(3, 1) = dt_3/2*noise_ay;
+    ekf_.Q_(3, 3) = dt_2*noise_ay;
+    
     ekf_.Predict();
     
     /*****************************************************************************
@@ -133,6 +160,9 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
         // Radar updates
     } else {
         // Laser updates
+        ekf_.R_ = R_laser_;
+        ekf_.H_ = H_laser_;
+        ekf_.Update(measurement_pack.raw_measurements_);
     }
     
     // print the output
