@@ -40,8 +40,8 @@ void KalmanFilter::Update(const VectorXd &z) {
     MatrixXd Ht = H_.transpose();
     MatrixXd S = H_ * P_ * Ht + R_;
     MatrixXd Si = S.inverse();
-    MatrixXd PHt = P * Ht;
-    MatrixXd K = Pht * Si;
+    MatrixXd PHt = P_ * Ht;
+    MatrixXd K = PHt * Si;
     
     // new estimate
     x_ = x_ + (K * y);
@@ -60,21 +60,32 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
     float ro = sqrt(x_(0) * x_(0) + x_(1) * x_(1));
     
     // bearing
-    float theta = atan2(x_(1), x_(0));
+    float phi = atan2(x_(1), x_(0));
     
     // range rate
     float ro_dot = (x_(0) * x_(2) + x_(1) * x_(3)) / ro;
-    Vector h_x_prime = VectorXd(3);
-    h_x_prime << ro, theta, ro_dot;
+    VectorXd h_x_prime(3);
+    h_x_prime << ro, phi, ro_dot;
     
     VectorXd y = z - h_x_prime;
     // check that the resulting bearing is within -π and π
     while(y(1) < -M_PI){
-        y(1) += M_PI;
+        y(1) += 2 * M_PI;
     }
     while (y(1) > M_PI) {
-        y(1) -= M_PI;
+        y(1) -= 2 * M_PI;
     }
     
+    MatrixXd Ht = H_.transpose();
+    MatrixXd S = H_ * P_ * Ht + R_;
+    MatrixXd Si = S.inverse();
+    MatrixXd PHt = P_ * Ht;
+    MatrixXd K = PHt * Si;
+    
+    // new estimate
+    x_ = x_ + (K * y);
+    long x_size = x_.size();
+    MatrixXd I = MatrixXd::Identity(x_size, x_size);
+    P_ = (I - K * H_) * P_;
     
 }
