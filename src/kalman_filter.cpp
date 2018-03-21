@@ -55,4 +55,26 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
      TODO:
      * update the state by using Extended Kalman Filter equations
      */
+    // let's compute h(x')
+    // range
+    float ro = sqrt(x_(0) * x_(0) + x_(1) * x_(1));
+    
+    // bearing
+    float theta = atan2(x_(1), x_(0));
+    
+    // range rate
+    float ro_dot = (x_(0) * x_(2) + x_(1) * x_(3)) / ro;
+    Vector h_x_prime = VectorXd(3);
+    h_x_prime << ro, theta, ro_dot;
+    
+    VectorXd y = z - h_x_prime;
+    // check that the resulting bearing is within -π and π
+    while(y(1) < -M_PI){
+        y(1) += M_PI;
+    }
+    while (y(1) > M_PI) {
+        y(1) -= M_PI;
+    }
+    
+    
 }
