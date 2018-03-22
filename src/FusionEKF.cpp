@@ -90,19 +90,38 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
             /**
              Convert radar from polar to cartesian coordinates and initialize state.
              */
-            ekf_.x_[0] = sqrt(measurement_pack.raw_measurements_[0] * measurement_pack.raw_measurements_[0] /
-                              (1 + tan(measurement_pack.raw_measurements_[1]) * tan(measurement_pack.raw_measurements_[1])));
-            ekf_.x_[1] = ekf_.x_[0] * tan(measurement_pack.raw_measurements_[1]);
+//            ekf_.x_[0] = sqrt(measurement_pack.raw_measurements_[0] * measurement_pack.raw_measurements_[0] /
+//                              (1 + tan(measurement_pack.raw_measurements_[1]) * tan(measurement_pack.raw_measurements_[1])));
+//            ekf_.x_[1] = ekf_.x_[0] * tan(measurement_pack.raw_measurements_[1]);
+            
+//            double rho = measurement_pack.raw_measurements_[0]; // range
+//            double phi = measurement_pack.raw_measurements_[1]; // bearing
+//            double rho_dot = measurement_pack.raw_measurements_[2]; // velocity of rho
+//            // Coordinates convertion from polar to cartesian
+//            double x = rho * cos(phi);
+//            double y = rho * sin(phi);
+//            double vx = rho_dot * cos(phi);
+//            double vy = rho_dot * sin(phi);
+//            ekf_.x_ << x, y, vx , vy;
+            
+            float ro = measurement_pack.raw_measurements_[0]; // range
+            float theta = measurement_pack.raw_measurements_[1]; // bearing
+            float ro_dot = measurement_pack.raw_measurements_[2]; // range rate
+            
+            float px = ro * cos(theta);
+            float py = ro * sin(theta);
+            ekf_.x_ << px, py;
+            
         }
         else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
             /**
              Initialize state.
              */
             //set the state with the initial location and zero velocity
-            ekf_.x_[0] = measurement_pack.raw_measurements_[0];
-            ekf_.x_[1] = measurement_pack.raw_measurements_[1];
-            ekf_.x_[2] = 0;
-            ekf_.x_[3] = 0;
+            float px = measurement_pack.raw_measurements_[0];
+            float py = measurement_pack.raw_measurements_[1];
+            
+            ekf_.x_ << px, py;
         }
         
         // done initializing, no need to predict or update
@@ -126,9 +145,15 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
     float dt = (measurement_pack.timestamp_ - previous_timestamp_) / 1000000.0; // in seconds
     previous_timestamp_ = measurement_pack.timestamp_;
     
-    //Modify the F matrix so that the time is integrated
-    ekf_.F_(0, 2) = dt;
-    ekf_.F_(1, 3) = dt;
+    ekf_.F_ = MatrixXd(4, 4);
+    ekf_.F_ << 1, 0, dt, 0,
+    0, 1, 0, dt,
+    0, 0, 1, 0,
+    0, 0, 0, 1;
+    
+//    //Modify the F matrix so that the time is integrated
+//    ekf_.F_(0, 2) = dt;
+//    ekf_.F_(1, 3) = dt;
     
     //set the process covariance matrix Q
     float dt_2 = dt * dt;
