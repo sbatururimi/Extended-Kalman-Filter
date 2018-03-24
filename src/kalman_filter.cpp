@@ -55,8 +55,45 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
      TODO:
      * update the state by using Extended Kalman Filter equations
      */
-    // let's compute h(x')
-    // range
-
+    // To calculate  y, we use the equations that map the predicted location x′
+    //  from Cartesian coordinates to polar coordinates
+    float px = x_[0];
+    float py = x_[1];
+    float vx = x_[2];
+    float vy = x_[3];
     
+    float p1 = sqrt(px * px + py * py);
+    
+    float ro = p1;
+    float phi = atan2(py, px);
+    float ro_dot = (px * vx + py * vy) / p1;
+    VectorXd h_(3);
+    h_ << ro, phi, ro_dot;
+    
+    
+    VectorXd y = z - h_;
+    
+    // Normalizing Angles
+    phi = y[1];
+    while (phi < -M_PI || phi > M_PI) {
+        if (phi < -M_PI) {
+            phi = phi +  2 * M_PI;
+        }
+        if (phi > M_PI) {
+            phi = phi - 2 * M_PI;
+        }
+    }
+    y[1] = phi;
+
+    MatrixXd Ht = H_.transpose(); // H_ is the Jacobian matrix here
+    MatrixXd S = H_ * P_ * Ht + R_;
+    MatrixXd Si = S.inverse();
+    MatrixXd PHt = P_ * Ht;
+    MatrixXd K = PHt * Si;
+    
+    //new estimate
+    x_ = x_ + (K * y);
+    long x_size = x_.size();
+    MatrixXd I = MatrixXd::Identity(x_size, x_size);
+    P_ = (I - K * H_) * P_;
 }
