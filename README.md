@@ -88,4 +88,4 @@ Regardless of the IDE used, every submitted project must
 still be compilable with cmake and make.
 
 ## License
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/sbatururimi/Extended-Kalman-Filter/blob/master/LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/sbatururimi/Extended-Kalman-Filter/blob/master/LICENSE.md)
